@@ -1,0 +1,54 @@
+services:
+    app:
+        build:
+            args:
+                user: leonardo
+                uid: 1000
+            context: ./
+            dockerfile: DockerFile
+        container_name: docker-php
+        image: app-laravel
+        volumes:
+            - ./src:/var/www
+        restart: unless-stopped
+        networks:
+            - docker-laravel
+
+    nginx:
+        container_name: docker-nginx
+        image: nginx:alpine
+        restart: unless-stopped
+        ports: 
+        - "${NGINX_HTTP_PORT}:80"
+        volumes: 
+        - ./src:/var/www
+        - ./nginx:/etc/nginx/conf.d/
+        networks: 
+        - docker-laravel
+
+    mysql:
+        container_name: docker-mysql
+        image: mysql:latest
+        restart: unless-stopped
+        environment: 
+            MYSQL_DATABASE: ${MYSQL_DATABASE}
+            MYSQL_ROOT_PASSWORD: ${MYSQL_PASSWORD}
+            MYSQL_USER: ${MYSQL_USER}
+            MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+        volumes: 
+            - ./src:/var/www
+            - ./mysql:/var/lib/mysql
+        ports: 
+        - 3307:3306
+        networks: 
+            - docker-laravel
+
+    redis:
+      container_name: docker-redis
+      image: redis:alpine
+      networks:
+          - docker-laravel
+
+networks:
+    docker-laravel:
+        driver: bridge
