@@ -9,8 +9,10 @@ services:
         container_name: docker-php
         image: app-laravel
         volumes:
-            - ./src:/var/www
+            - ./:/var/www
         restart: unless-stopped
+        depends_on:
+            - redis
         networks:
             - docker-laravel
 
@@ -19,9 +21,9 @@ services:
         image: nginx:alpine
         restart: unless-stopped
         ports: 
-        - "${NGINX_HTTP_PORT}:80"
+        - "80:80"
         volumes: 
-        - ./src:/var/www
+        - ./:/var/www
         - ./nginx:/etc/nginx/conf.d/
         networks: 
         - docker-laravel
@@ -31,12 +33,12 @@ services:
         image: mysql:latest
         restart: unless-stopped
         environment: 
-            MYSQL_DATABASE: ${MYSQL_DATABASE}
-            MYSQL_ROOT_PASSWORD: ${MYSQL_PASSWORD}
-            MYSQL_USER: ${MYSQL_USER}
-            MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+            MYSQL_DATABASE: ${DB_DATABASE}
+            MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+            MYSQL_USER: ${DB_USERNAME}
+            MYSQL_PASSWORD: ${DB_PASSWORD}
         volumes: 
-            - ./src:/var/www
+            - ./:/var/www
             - ./mysql:/var/lib/mysql
         ports: 
         - 3307:3306
@@ -48,6 +50,24 @@ services:
       image: redis:alpine
       networks:
           - docker-laravel
+
+    queue:
+        build:
+            args:
+                user: leonardo
+                uid: 1000
+            context: ./
+            dockerfile: DockerFile
+        container_name: docker-queue
+        restart: unless-stopped
+        command: "php artisan queue:work"
+        volumes:
+            - ./:/var/www
+        depends_on:
+            - redis
+        networks:
+            - docker-laravel
+
 
 networks:
     docker-laravel:
